@@ -1,0 +1,42 @@
+/* UI Design Update Plan */
+
+/* 1. Color Palette */
+:root {
+    --primary-color: #2563eb;
+    /* Modern Blue */
+    --primary-hover: #1d4ed8;
+    --bg-color: #ffffff;
+    --secondary-bg: #f8fafc;
+    /* Very light gray for bubbles */
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --success-color: #10b981;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* 2. Model Fetching Logic */
+async function fetchModels(apiKey, baseUrl) {
+    try {
+        const response=await fetch(`$ {
+                baseUrl
+            }
+
+            /models`, {
+            headers: {
+                Authorization: `Bearer $ {
+                    apiKey
+                }
+
+                `
+            }
+        });
+    const data=await response.json();
+    return data.data.map(m=> m.id);
+}
+
+catch (e) {
+    return []; // Fallback to manual
+}
+}

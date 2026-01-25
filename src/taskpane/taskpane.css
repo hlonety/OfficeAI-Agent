@@ -1,0 +1,470 @@
+:root {
+    --primary: #0078d4;
+    --primary-hover: #106ebe;
+    --bg: #f5f5f5;
+    --card-bg: #ffffff;
+    --text: #323130;
+    --text-sub: #605e5c;
+    --border: #e1dfdd;
+    --success: #107c10;
+    --warning: #ffb900;
+    --error: #d13438;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===== Header ===== */
+.header {
+    background: var(--card-bg);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--primary);
+}
+
+.model-selector select {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    max-width: 120px;
+    cursor: pointer;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    padding: 6px 8px;
+    cursor: pointer;
+    color: var(--text-sub);
+    border-radius: 4px;
+}
+
+.icon-btn:hover {
+    background: var(--bg);
+}
+
+/* ===== Chat View ===== */
+#chat-view,
+#settings-view {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#app-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-container {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message {
+    max-width: 85%;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.system-message {
+    align-self: center;
+    background: #e8e8e8;
+    color: var(--text-sub);
+    text-align: center;
+    font-size: 12px;
+    max-width: 90%;
+}
+
+.ai-message {
+    align-self: flex-start;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+}
+
+.user-message {
+    align-self: flex-end;
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+}
+
+.input-area {
+    background: var(--card-bg);
+    padding: 10px;
+    border-top: 1px solid var(--border);
+}
+
+textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: none;
+    min-height: 60px;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.button-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.hint-text {
+    font-size: 11px;
+    color: #999;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f0f0f0;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+}
+
+button:hover {
+    background: #e0e0e0;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ms-Button--primary {
+    background: var(--primary);
+    color: white;
+}
+
+.ms-Button--primary:hover {
+    background: var(--primary-hover);
+}
+
+/* ===== Settings View ===== */
+.settings-content {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.settings-desc {
+    font-size: 12px;
+    color: var(--text-sub);
+    margin: 0 0 12px 0;
+}
+
+/* Provider List */
+.provider-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.provider-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.provider-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+}
+
+.provider-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.provider-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 2px 0;
+}
+
+.provider-status {
+    font-size: 11px;
+    color: var(--text-sub);
+}
+
+.provider-status.configured {
+    color: var(--success);
+}
+
+.provider-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.provider-actions button {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.key-input-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.key-input-row input {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.add-custom-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    background: transparent;
+    border: 2px dashed var(--border);
+    color: var(--text-sub);
+}
+
+.add-custom-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #f0f7ff;
+}
+
+/* ===== Modal ===== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 16px;
+    width: 100%;
+    max-width: 300px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+}
+
+.form-group {
+    margin-bottom: 10px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 4px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+/* Markdown */
+.ai-message p {
+    margin: 0 0 6px 0;
+}
+
+.ai-message p:last-child {
+    margin: 0;
+}
+
+.ai-message code {
+    background: #f3f4f6;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+.ai-message pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 8px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 11px;
+}
+
+.ai-message pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+}
+
+/* 思考过程折叠块 */
+.think-block {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+.think-block summary {
+    padding: 8px 10px;
+    cursor: pointer;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.think-block summary:hover {
+    background: #e9ecef;
+}
+
+.think-content {
+    padding: 10px;
+    border-top: 1px solid #e9ecef;
+    white-space: pre-wrap;
+    color: #495057;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* 获取模型按钮 */
+.refresh-models-btn {
+    padding: 6px 8px;
+    background: #e9ecef;
+}
+
+.refresh-models-btn:hover {
+    background: #dee2e6;
+}
+
+/* 模型筛选列表 */
+.model-filter-list {
+    margin-top: 8px;
+    background: #fafafa;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.model-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    font-size: 11px;
+}
+
+.model-item label {
+    cursor: pointer;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

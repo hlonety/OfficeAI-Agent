@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Office AI Agent</title>
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+    <link href="taskpane.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="ms-font-m">
+
+    <!-- 主聊天界面 -->
+    <div id="chat-view">
+        <header class="header">
+            <div class="header-left">
+                <i class="fa-solid fa-robot" style="color: #0078d4;"></i>
+                <h2>AI Agent</h2>
+            </div>
+            <!-- 模型选择器在顶部 -->
+            <div class="model-selector">
+                <select id="active-model-select" title="切换模型">
+                    <option value="">未配置</option>
+                </select>
+            </div>
+            <button id="settings-btn" class="icon-btn" title="配置 API">
+                <i class="fa-solid fa-key"></i>
+            </button>
+        </header>
+
+        <main id="app-body">
+            <div id="chat-history" class="chat-container">
+                <div class="message system-message">
+                    <i class="fa-regular fa-lightbulb"></i><br />
+                    欢迎！请先点击右上角 <i class="fa-solid fa-key"></i> 配置 API Key。
+                </div>
+            </div>
+
+            <div class="input-area">
+                <textarea id="user-input" placeholder="输入你的需求，Ctrl+Enter 发送..." rows="3"></textarea>
+                <div class="button-row">
+                    <span class="hint-text">支持 Markdown</span>
+                    <button id="run-btn" class="ms-Button--primary">
+                        <i class="fa-solid fa-paper-plane"></i> 发送
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 配置页面（全屏） -->
+    <div id="settings-view" class="hidden">
+        <header class="header">
+            <button id="back-btn" class="icon-btn">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <h2>API 配置</h2>
+            <div style="width: 32px;"></div>
+        </header>
+
+        <div class="settings-content">
+            <p class="settings-desc">配置你的 AI 服务商，填写 API Key 即可使用：</p>
+
+            <div id="provider-list" class="provider-list">
+                <!-- 动态生成 -->
+            </div>
+
+            <button id="add-custom-btn" class="add-custom-btn">
+                <i class="fa-solid fa-plus"></i> 添加自定义服务 (OpenAI 兼容)
+            </button>
+        </div>
+
+        <!-- 添加/编辑自定义服务的弹窗 -->
+        <div id="custom-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>添加自定义服务</h3>
+                <div class="form-group">
+                    <label>服务名称</label>
+                    <input type="text" id="custom-name" placeholder="例如: 我的NAS" />
+                </div>
+                <div class="form-group">
+                    <label>API 地址 (OpenAI 兼容)</label>
+                    <input type="text" id="custom-url" placeholder="http://192.168.1.100:3000/v1" />
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="custom-key" placeholder="sk-..." />
+                </div>
+                <div class="modal-actions">
+                    <button id="cancel-custom-btn">取消</button>
+                    <button id="save-custom-btn" class="ms-Button--primary">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="text/javascript" src="../utils/ai-connector.js?v=0126l"></script>
+    <script type="text/javascript" src="../utils/excel-agent.js?v=0126l"></script>
+    <script type="text/javascript" src="taskpane.js?v=0126l"></script>
+</body>
+
+</html>

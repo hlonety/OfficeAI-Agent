@@ -1,0 +1,33 @@
+{
+  "name": "officeai-agent",
+  "version": "1.0.0",
+  "description": "Office AI Agent Add-in",
+  "main": "src/taskpane/taskpane.js",
+  "scripts": {
+    "start": "office-addin-debugging start manifest.xml",
+    "stop": "office-addin-debugging stop manifest.xml",
+    "dev-server": "node simple-server.js",
+    "dev": "concurrently \"npm run dev-server\" \"npm start\""
+  },
+  "dependencies": {
+    "marked": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/office-js": "^1.0.0",
+    "@types/office-runtime": "^1.0.0",
+    "concurrently": "^8.2.2",
+    "live-server": "^1.2.2",
+    "office-addin-debugging": "^5.1.0",
+    "office-addin-dev-certs": "^1.13.0",
+    "office-addin-manifest": "^1.6.0"
+  },
+  "keywords": [
+    "office",
+    "add-in",
+    "ai",
+    "excel",
+    "word"
+  ],
+  "author": "User",
+  "license": "ISC"
+}
