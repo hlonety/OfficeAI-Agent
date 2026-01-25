@@ -30,7 +30,7 @@ class ExcelAgentExecutor {
                 // Standard getUsedRange returns the range. If empty, it might be A1.
 
                 // 批量加载需要的信息
-                usedRange.load("rowIndex, columnIndex, rowCount, columnCount, values");
+                usedRange.load("rowIndex, columnIndex, rowCount, columnCount, values, address");
                 // 同时加载所有 action涉及的 range 的坐标信息，用于计算碰撞
                 const actionRanges = [];
 
@@ -40,7 +40,7 @@ class ExcelAgentExecutor {
                     if (addr && typeof addr === 'string') {
                         // 创建 range 对象并加载坐标
                         const r = sheet.getRange(addr);
-                        r.load("rowIndex, columnIndex, rowCount, columnCount");
+                        r.load("rowIndex, columnIndex, rowCount, columnCount, address");
                         actionRanges.push({ action, rangeObj: r });
                     }
                 });
