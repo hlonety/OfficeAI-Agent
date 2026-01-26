@@ -16,8 +16,13 @@ class ExcelAgentExecutor {
     async execute(plan) {
         if (!plan || !plan.actions || !Array.isArray(plan.actions)) {
             console.error("Invalid plan:", plan);
-            return;
+            return { observations: [] };
         }
+
+        // 收集读取操作的观察结果
+        const observations = [];
+        // 收集写入的单元格地址
+        const writtenCells = [];
 
         try {
             await Excel.run(async (context) => {
@@ -34,7 +39,10 @@ class ExcelAgentExecutor {
                 // 同时加载所有 action涉及的 range 的坐标信息，用于计算碰撞
                 const actionRanges = [];
 
-                plan.actions.forEach(action => {
+                // 过滤出写入操作 (排除读取操作)
+                const writeActions = plan.actions.filter(a => !['readRange', 'findData', 'getUsedRangeInfo'].includes(a.type));
+
+                writeActions.forEach(action => {
                     // 提取 action 中的地址参数
                     const addr = action.params?.range || action.params?.address || action.params?.sourceData;
                     if (addr && typeof addr === 'string') {
@@ -54,46 +62,34 @@ class ExcelAgentExecutor {
                 let rowOffset = 0;
                 let collisionDetected = false;
 
-                if (!isSheetEmpty) {
-                    // 只有当表不为空时，才需要检测碰撞
+                if (!isSheetEmpty && writeActions.length > 0) {
+                    // 2.0.1 修正: 禁用自动碰撞偏移
+                    // 用户明确指定了单元格 (如 A153)，我们不应该自作主张把它移到下面去
+                    // 只有当用户没有指定具体行时，AI 应该自己决定位置，而不是靠底层硬搬
+                    console.log("Smart Collision Detection disabled: Prioritizing user specified coordinates.");
+
+                    /* 
+                    // 原有逻辑: 只要通过 Bounding Box 检测到任何重叠，就整体平移
                     for (const item of actionRanges) {
-                        const target = item.rangeObj;
-                        const used = usedRange;
-
-                        // 数学判断矩形相交
-                        // 矩形1: [r1, c1, r1+h1, c1+w1]
-                        // 矩形2: [r2, c2, r2+h2, c2+w2]
-                        // 不相交条件: t_bottom <= u_top OR t_top >= u_bottom OR t_right <= u_left OR t_left >= u_right
-
-                        const t_top = target.rowIndex;
-                        const t_bottom = target.rowIndex + target.rowCount;
-                        const t_left = target.columnIndex;
-                        const t_right = target.columnIndex + target.columnCount;
-
-                        const u_top = used.rowIndex;
-                        const u_bottom = used.rowIndex + used.rowCount;
-                        const u_left = used.columnIndex;
-                        const u_right = used.columnIndex + used.columnCount;
-
-                        const isDisjoint = (t_bottom <= u_top) || (t_top >= u_bottom) || (t_right <= u_left) || (t_left >= u_right);
-
-                        if (!isDisjoint) {
-                            console.warn("Collision Detected!", { target: target.address, used: usedRange.address });
-                            collisionDetected = true;
-                            break; // 只要有一个撞了，就整体迁移，保持相对结构
-                        }
+                        // ... (Code removed/disabled)
                     }
-
                     if (collisionDetected) {
-                        // 偏移量 = UsedRange 底部 + 2行缓冲
                         rowOffset = usedRange.rowIndex + usedRange.rowCount + 2;
-                        console.log(`Applying Smart Offset: ${rowOffset} rows.`);
                     }
+                    */
                 }
 
-                // 执行动作
+                // 执行所有动作
                 for (const action of plan.actions) {
-                    await this.performAction(context, sheet, action, rowOffset);
+                    const result = await this.performAction(context, sheet, action, rowOffset);
+                    // 如果是读取操作，收集观察结果
+                    if (result && result.observation) {
+                        observations.push(result.observation);
+                    }
+                    // 如果是写入操作，收集写入的地址
+                    if (result && result.written) {
+                        writtenCells.push(result.written);
+                    }
                 }
 
                 await context.sync();
@@ -102,6 +98,9 @@ class ExcelAgentExecutor {
             console.error("Execution error:", error);
             throw error;
         }
+
+        // 返回观察结果和写入的单元格
+        return { observations, writtenCells };
     }
 
     async performAction(context, sheet, action, rowOffset = 0) {
@@ -122,17 +121,19 @@ class ExcelAgentExecutor {
         switch (action.type) {
             case "setCell":
                 // params: { address: "A1", value: "Text" or 123, formula: boolean }
+                if (!params.address) throw new Error("Action 'setCell' missing required param: 'address'");
                 const range = sheet.getRange(params.address);
                 if (params.formula) {
                     range.formulas = [[params.value]];
                 } else {
                     range.values = [[params.value]];
                 }
-                break;
+                return { written: params.address, type: "setCell" };
 
             case "setRange":
                 // 兼容 range 和 address 参数
                 const rangeAddr = params.range || params.address;
+                if (!rangeAddr) throw new Error("Action 'setRange' missing required param: 'range' or 'address'");
                 const multiRange = sheet.getRange(rangeAddr);
 
                 if (params.values) {
@@ -147,10 +148,11 @@ class ExcelAgentExecutor {
                         multiRange.values = params.value; // 同上，给区域赋单个值
                     }
                 }
-                break;
+                return { written: rangeAddr, type: "setRange" };
 
             case "createTable":
                 // params: { range: "A1:C5", name: "MyTable", header: boolean }
+                if (!params.range) throw new Error("Action 'createTable' missing required param: 'range'");
                 // 表格名称不能重复，如果偏移了，建议改名？
                 // 暂不改名，如果重名 Excel 会自动处理 (e.g. MyTable2) 或者是抛错? 
                 // Excel API tables.add 如果名字重复会报错。
@@ -173,14 +175,13 @@ class ExcelAgentExecutor {
 
             case "formatRange":
                 // params: { range: "A1", style: "input" | "calculation" | "header" | custom... }
+                if (!params.range) throw new Error("Action 'formatRange' missing required param: 'range'");
                 await this.applyStyle(sheet.getRange(params.range), params);
                 break;
 
             case "createChart":
                 // params: { type: "ColumnClustered", sourceData: "A1:B10" }
-                // chart 放置位置也需要偏移吗? sheet.charts.add 默认放在可见区域。
-                // 我们可以设置 chart.top / left，但这比较复杂。
-                // 暂时只确保 sourceData 是对的。
+                if (!params.sourceData) throw new Error("Action 'createChart' missing required param: 'sourceData'");
                 const dataRange = sheet.getRange(params.sourceData);
                 const chart = sheet.charts.add(params.type, dataRange, "Auto");
 
@@ -192,14 +193,8 @@ class ExcelAgentExecutor {
 
             case "autoFit":
                 // params: { range: "A:C" }
-                // 整列 autoFit 不需要偏移 range (A:C 还是 A:C)
-                // 但如果是具体区域 A1:C5，就要偏移。
-                // 正则判断：如果包含数字，则偏移。如果不含数字(整列)，不偏移。
-                if (/\d/.test(action.params.range)) { // check original
-                    sheet.getRange(params.range).getEntireColumn().format.autofitColumns();
-                } else {
-                    sheet.getRange(action.params.range).getEntireColumn().format.autofitColumns();
-                }
+                if (!params.range) throw new Error("Action 'autoFit' missing required param: 'range'");
+                sheet.getRange(params.range).getEntireColumn().format.autofitColumns();
                 break;
 
             case "scanForErrors":
@@ -212,6 +207,51 @@ class ExcelAgentExecutor {
                 fixRange.values = [[params.value]];
                 fixRange.format.fill.clear();
                 break;
+
+            // ========= READ ACTIONS (ReAct Loop) =========
+            case "readRange":
+                // params: { address: "A1:C10" }
+                if (!params.address) throw new Error("Action 'readRange' missing required param: 'address'");
+                // 返回读取到的内容，供 AI 进一步分析
+                const readTarget = sheet.getRange(params.address);
+                readTarget.load("values");
+                await context.sync();
+                // 将二维数组转换为 CSV 便于 AI 理解
+                const csvResult = readTarget.values.map(row => row.join(",")).join("\n");
+                // 返回观察结果 (observation)
+                return { observation: `Range ${params.address} contents:\n${csvResult}` };
+
+            case "findData":
+                // params: { keyword: "保费" }
+                // 在 UsedRange 中搜索关键词
+                const findUsedRange = sheet.getUsedRange();
+                findUsedRange.load("values, address");
+                await context.sync();
+
+                const keyword = params.keyword;
+                const foundCells = [];
+                const vals = findUsedRange.values;
+                for (let i = 0; i < vals.length; i++) {
+                    for (let j = 0; j < vals[i].length; j++) {
+                        if (String(vals[i][j]).includes(keyword)) {
+                            foundCells.push(this.getA1Address(i, j));
+                        }
+                    }
+                }
+                if (foundCells.length > 0) {
+                    return { observation: `Found "${keyword}" in cells: ${foundCells.join(", ")}` };
+                } else {
+                    return { observation: `"${keyword}" not found in the active sheet.` };
+                }
+
+            case "getUsedRangeInfo":
+                // 获取有效数据范围摘要 (只读取地址，不读取值，节省资源)
+                const usedRangeInfo = sheet.getUsedRange();
+                usedRangeInfo.load("address, rowCount, columnCount");
+                await context.sync();
+                // 只返回地址和大小信息
+                const summary = `Used range: ${usedRangeInfo.address}, ${usedRangeInfo.rowCount} rows x ${usedRangeInfo.columnCount} cols.`;
+                return { observation: summary };
 
             default:
                 console.warn(`Unknown action type: ${action.type}`);
@@ -286,6 +326,71 @@ class ExcelAgentExecutor {
             c = Math.floor(c / 26) - 1;
         }
         return `${colStr}${row + 1}`;
+    }
+    /**
+     * 获取当前表格的上下文数据 (表头 + 前几行)
+     * 用于让 AI "看见" 表格结构
+     */
+    async getContextData() {
+        try {
+            return await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // 1. 获取用户选中区域 (Selection)
+                const selection = context.workbook.getSelectedRange();
+                selection.load("address, rowCount, columnCount, values");
+                // 2. 获取已用区域 (UsedRange)
+                const usedRange = sheet.getUsedRange();
+                usedRange.load("rowCount, columnCount, rowIndex, columnIndex");
+
+                await context.sync();
+
+                // 构建上下文消息
+                let contextMsg = "";
+
+                // 处理选中区域
+                if (selection) {
+                    // 读取选中区域的值 (限制大小以免爆 Token)
+                    const maxCells = 50;
+                    const cellCount = selection.rowCount * selection.columnCount;
+
+                    if (cellCount <= maxCells) {
+                        const selectionData = selection.values.map(row => row.join(", ")).join("\n");
+                        contextMsg += `==当前选中区域: ${selection.address}==\n${selectionData}\n\n`;
+                    } else {
+                        contextMsg += `==当前选中区域: ${selection.address}== (区域过大，仅显示地址)\n\n`;
+                    }
+                }
+
+                // 处理整体数据概览
+                if (usedRange.rowCount === 0) {
+                    contextMsg += "当前表格为空。";
+                    return contextMsg;
+                }
+
+                // 限制读取行数 (例如只读前 5 行用于理解结构)
+                const previewRowCount = Math.min(usedRange.rowCount, 5);
+                // 获取预览区域 (从 UsedRange 的起始位置开始)
+                const previewRange = sheet.getRangeByIndexes(
+                    usedRange.rowIndex,
+                    usedRange.columnIndex,
+                    previewRowCount,
+                    usedRange.columnCount
+                );
+
+                previewRange.load("values");
+                await context.sync();
+
+                // 将二维数组转换为简单的 CSV 格式字符串
+                const csvData = previewRange.values.map(row => row.join(",")).join("\n");
+                contextMsg += `==表格数据概览 (前 ${previewRowCount} 行)==\n${csvData}`;
+
+                return contextMsg;
+            });
+        } catch (error) {
+            console.error("Error getting context:", error);
+            return "无法读取表格上下文。";
+        }
     }
 }
 

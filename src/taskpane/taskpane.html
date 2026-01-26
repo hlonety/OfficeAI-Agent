@@ -15,36 +15,41 @@
 
     <!-- 主聊天界面 -->
     <div id="chat-view">
-        <header class="header">
-            <div class="header-left">
-                <i class="fa-solid fa-robot" style="color: #0078d4;"></i>
-                <h2>AI Agent</h2>
+        <!-- 深色顶栏 -->
+        <header class="header-dark">
+            <!-- 汉堡菜单 + 下拉 -->
+            <div class="menu-dropdown">
+                <button class="menu-btn" id="menu-toggle-btn"><i class="fa-solid fa-bars"></i></button>
+                <div class="menu-content hidden" id="menu-dropdown">
+                    <button id="menu-settings-btn"><i class="fa-solid fa-gear"></i> API 配置</button>
+                    <button id="menu-about-btn"><i class="fa-solid fa-info-circle"></i> 关于</button>
+                </div>
             </div>
-            <!-- 模型选择器在顶部 -->
-            <div class="model-selector">
-                <select id="active-model-select" title="切换模型">
-                    <option value="">未配置</option>
-                </select>
-            </div>
-            <button id="settings-btn" class="icon-btn" title="配置 API">
-                <i class="fa-solid fa-key"></i>
-            </button>
+            <h2 class="header-title">AI 助手</h2>
+            <div style="width: 32px;"></div> <!-- Spacer -->
         </header>
 
         <main id="app-body">
             <div id="chat-history" class="chat-container">
                 <div class="message system-message">
                     <i class="fa-regular fa-lightbulb"></i><br />
-                    欢迎！请先点击右上角 <i class="fa-solid fa-key"></i> 配置 API Key。
+                    欢迎！请先点击左上角菜单 <i class="fa-solid fa-bars"></i> 配置 API Key。
                 </div>
             </div>
 
+            <!-- 底部：模型选择器 + 新建聊天 -->
+            <div class="bottom-bar">
+                <select id="active-model-select" class="model-select" title="切换模型">
+                    <option value="">请先配置 API</option>
+                </select>
+                <button id="new-chat-btn" class="new-chat-btn">+ 新建聊天</button>
+            </div>
+
             <div class="input-area">
-                <textarea id="user-input" placeholder="输入你的需求，Ctrl+Enter 发送..." rows="3"></textarea>
-                <div class="button-row">
-                    <span class="hint-text">支持 Markdown</span>
-                    <button id="run-btn" class="ms-Button--primary">
-                        <i class="fa-solid fa-paper-plane"></i> 发送
+                <div class="input-wrapper">
+                    <textarea id="user-input" placeholder="输入你的问题..." rows="3"></textarea>
+                    <button id="run-btn" class="send-btn-float" title="发送">
+                        <i class="fa-solid fa-arrow-up"></i>
                     </button>
                 </div>
             </div>
@@ -98,9 +103,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script type="text/javascript" src="../utils/ai-connector.js?v=0126m-fixLog"></script>
-    <script type="text/javascript" src="../utils/excel-agent.js?v=0126m-fixLog"></script>
-    <script type="text/javascript" src="taskpane.js?v=0126m-fixLog"></script>
+    <script type="text/javascript" src="../utils/ai-connector.js?v=0126z9-no-offset"></script>
+    <script type="text/javascript" src="../utils/excel-agent.js?v=0126z9-no-offset"></script>
+    <script type="text/javascript" src="taskpane.js?v=0126z13-selection"></script>
 </body>
 
 </html>

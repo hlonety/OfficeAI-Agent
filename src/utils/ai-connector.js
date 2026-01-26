@@ -27,12 +27,25 @@ class AiConnector {
 
         // 纯净模式：不注入任何指令，原样传递 System Prompt
         // 这样 Gemini 和 智谱 会恢复正常的直接回答（解决"只有思考没回答"的问题）
-        const body = {
-            model: this.model,
-            messages: [
+        // 如果 firstArg 是数组，说明是完整的 history；如果是字符串，说明是单次 userPrompt
+        let messages = [];
+        if (Array.isArray(userPrompt)) {
+            // 历史模式: System Prompt + History
+            messages = [
+                { role: "system", content: systemPrompt },
+                ...userPrompt
+            ];
+        } else {
+            // 兼容模式: System Prompt + Single User Msg
+            messages = [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
-            ],
+            ];
+        }
+
+        const body = {
+            model: this.model,
+            messages: messages,
             stream: true,
             temperature: 0.7
         };

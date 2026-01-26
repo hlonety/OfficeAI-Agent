@@ -54,6 +54,10 @@ let customProviders = [];
 let activeProvider = null;
 let activeModel = null;
 
+// 全局对话历史
+let globalChatHistory = [];
+const MAX_HISTORY_LENGTH = 20; // 限制上下文长度
+
 Office.onReady((info) => {
     if (info.host === Office.HostType.Excel || info.host === Office.HostType.Word) {
         loadConfig();
@@ -65,12 +69,49 @@ Office.onReady((info) => {
 
 function bindEvents() {
     document.getElementById("run-btn").onclick = run;
-    document.getElementById("settings-btn").onclick = showSettings;
     document.getElementById("back-btn").onclick = hideSettings;
     document.getElementById("add-custom-btn").onclick = showCustomModal;
     document.getElementById("cancel-custom-btn").onclick = hideCustomModal;
     document.getElementById("save-custom-btn").onclick = saveCustomProvider;
     document.getElementById("active-model-select").onchange = onModelChange;
+
+    // 新增：汉堡菜单下拉切换
+    document.getElementById("menu-toggle-btn").onclick = () => {
+        const dropdown = document.getElementById("menu-dropdown");
+        dropdown.classList.toggle("hidden");
+    };
+
+    // 点击菜单外部时关闭下拉
+    document.addEventListener("click", (e) => {
+        const dropdown = document.getElementById("menu-dropdown");
+        const toggleBtn = document.getElementById("menu-toggle-btn");
+        if (!dropdown.contains(e.target) && !toggleBtn.contains(e.target)) {
+            dropdown.classList.add("hidden");
+        }
+    });
+
+    // 菜单项：API 配置
+    document.getElementById("menu-settings-btn").onclick = () => {
+        document.getElementById("menu-dropdown").classList.add("hidden");
+        showSettings();
+    };
+
+    // 菜单项：关于 (暂时只显示简单提示)
+    document.getElementById("menu-about-btn").onclick = () => {
+        document.getElementById("menu-dropdown").classList.add("hidden");
+        alert("Office AI Agent v1.0\n一个智能的 Excel 自动化助手。");
+    };
+
+    // 新建聊天按钮
+    document.getElementById("new-chat-btn").onclick = () => {
+        const chatHistory = document.getElementById("chat-history");
+        chatHistory.innerHTML = `
+            <div class="message system-message">
+                <i class="fa-regular fa-lightbulb"></i><br />
+                新对话已开始！有什么可以帮你的？
+            </div>
+        `;
+    };
 
     document.getElementById("user-input").addEventListener("keydown", (e) => {
         if (e.ctrlKey && e.key === "Enter") run();
@@ -194,11 +235,12 @@ function toggleKeyInput(card, provider, isCustom) {
 
     // 辅助函数：渲染模型筛选列表
     const renderFilterList = (models, enabledModels) => {
-        let list = row.querySelector(".model-filter-list");
+        // 注意：将列表添加到 card 而不是 row，以获得完整宽度
+        let list = card.querySelector(".model-filter-list");
         if (!list) {
             list = document.createElement("div");
             list.className = "model-filter-list";
-            row.appendChild(list);
+            card.appendChild(list);
         }
         list.innerHTML = "";
 
@@ -466,6 +508,13 @@ async function run() {
     addUserMessage(message);
     inputEl.value = "";
 
+    // 1. 添加用户消息到历史
+    globalChatHistory.push({ role: "user", content: message });
+    // 超长截断 (保留 SystemPrompt 实际上由 Connector 注入，这里只需管理 User/Assistant)
+    if (globalChatHistory.length > MAX_HISTORY_LENGTH) {
+        globalChatHistory = globalChatHistory.slice(globalChatHistory.length - MAX_HISTORY_LENGTH);
+    }
+
     const val = document.getElementById("active-model-select").value;
     if (!val || val === "") {
         addSystemMessage("请先配置 API Key 并选择模型");
@@ -521,31 +570,47 @@ async function run() {
 
         const hostType = Office.context.host === Office.HostType.Excel ? "Excel" : "Word";
 
-        let systemPrompt = `你是一个精通 ${hostType} 的智能助手。请简洁地回答用户问题。`;
+        let systemPrompt = `你是一个精通 ${hostType} 的智能助手。请简洁地回答用户问题。\nCurrent Date: ${new Date().toLocaleDateString()}`;
 
         if (hostType === "Excel") {
+            // --- Smart Context V1.0 ---
+            let contextData = "";
+            try {
+                if (window.ExcelAgent) {
+                    contextData = await window.ExcelAgent.getContextData();
+                    console.log("Context loaded:", contextData);
+                }
+            } catch (e) {
+                console.warn("Context load failed:", e);
+            }
+
             systemPrompt += `
-\n**IMPORTANT EXCEL AGENT INSTRUCTIONS**
-You are not just a chatbot; you are an Excel Automation Agent. 
-If the user's request requires performing actions in Excel (like creating tables, formatting, charts, or setting values), you MUST return a strict JSON response following constraints below.
+\n**重要 Excel 智能助手指令**
+你不仅是一个聊天机器人，你是一个专业的 Excel 自动化助手。
 
-### 1. Formula-First Strategy (CRITICAL)
-- **NEVER hardcode calculated values**. Always specificy Excel formulas.
-- Example: Instead of calculating "Sum = 100" in your head, output "=SUM(A1:A10)".
-- Separate assumptions/inputs from calculations.
+*** 当前工作表上下文 ***
+${contextData}
+*** 上下文结束 ***
 
-### 2. Styling Rules (Anthropic Financial Standard)
-- **Inputs**: Blue text (RGB 0,0,255).
-- **Formulas**: Black text (RGB 0,0,0).
-- **External Links**: Red text (RGB 255,0,0).
+如果用户的请求需要对 Excel 进行操作（如创建表格、格式化、图表或设置数值），你**必须**严格返回以下 JSON 格式。
 
-### 3. JSON Protocol
-To execute actions, output a single JSON block wrapped in \`\`\`json ... \`\`\`.
+### 1. 公式优先策略 (关键)
+- **永远不要硬编码计算结果**。必须使用 Excel 公式。
+- 例如：不要自己计算 "Sum = 100" 然后写入 100，而要输出 "=SUM(A1:A10)"。
+- 将假设/输入数据与计算逻辑分离开。
 
-Schema:
+### 2. 样式规则 (行业标准)
+- **输入值**：蓝色文本 (RGB 0,0,255)。
+- **公式**：黑色文本 (RGB 0,0,0)。
+- **外部链接**：红色文本 (RGB 255,0,0)。
+
+### 3. JSON 协议
+要执行操作，请输出一个由 \`\`\`json ... \`\`\` 包裹的单一 JSON 代码块。
+
+Schema 示例:
 \`\`\`json
 {
-  "thought": "Brief explanation of what you are doing",
+  "thought": "简要解释你要做什么",
   "actions": [
     { 
       "type": "setCell", 
@@ -560,55 +625,78 @@ Schema:
       "params": { "range": "A1:C5", "name": "SalesData" } 
     }
   ],
-  "message": "Final response to show to user"
+  "message": "最终展示给用户的回复"
 }
 \`\`\`
 
-Supported Action Types:
-- setCell, setRange
-- createTable
-- createChart
-- formatRange (style: "input"|"calculation"|"header"|"external")
-- autoFit
-- scanForErrors (no params) - Check for #DIV/0!, #Ref!, etc.
-- fixError (params: address, value)
+支持的动作类型 (Action Types):
+**写入操作:**
+- setCell (设置单元格), setRange (设置区域)
+- createTable (创建表格)
+- createChart (创建图表)
+- formatRange (格式化, style: "input"|"calculation"|"header"|"external")
+- autoFit (自动调整列宽)
+- scanForErrors (扫描错误，无参数)
+- fixError (修复错误, params: address, value)
 
-If the user request is just a question, answer normally without JSON.
+**读取操作:**
+- readRange (读取区域, params: address)
+- getUsedRangeInfo (获取使用范围信息)
+- findData (查找数据, params: keyword)
+
+**重要提示**:
+1. 如果信息不足（例如找不到列名），请先使用 \`readRange\` 或 \`getUsedRangeInfo\` 查看数据。
+2. **严禁**输出多余的解释性文字，只输出符合 Schema 的 JSON。
+
+### 4. ReAct 策略 (关键)
+如果你不确定数据在哪里，**请先使用读取操作**，然后再写入。
+工作流示例：
+1. 用户问："统计保费列的总和"
+2. 你不知道哪一列是"保费"，所以先调用 \`findData\` 查找它。
+3. 我会执行读取操作并把观察结果告诉你。
+4. 然后你再生成最终的写入操作（如使用 SUM 公式的 setCell）。
+
+### 5. 重要：智能处理混合数据
+当用户要求求和/计算数据时：
+- **不要盲目**对整列应用公式。数据可能包含文本、标题或混合类型。
+- **第一步**：调用 \`getUsedRangeInfo\` 获取实际数据范围。
+- **第二步**：调用 \`readRange\` 读取样本（如前10行）以了解数据结构。
+- **第三步**：根据观察结果：
+  - 如果有清晰的数字列，只针对该列。
+  - 如果是混合的，考虑使用 \`SUMIF\` 或 \`SUMPRODUCT\` 来筛选。
+  - 或者识别包含数字的具体单元格地址。
+- **示例**：用户说"求所有数字之和"。你读取样本看到数字在 C, D, H 列。使用 \`=SUM(C:C,D:D,H:H)\` 而不是 \`=SUM(A:Z)\`。
+
+如果用户的请求只是一个问题，正常回答即可，不需要 JSON。
 `;
         }
 
         let finalFullContent = "";
 
         await connector.chatStream(
-            message,
+            globalChatHistory, // 传入完整历史
             systemPrompt,
             // onChunk - 收到正常内容
             (chunk, fullContent) => {
                 finalFullContent = fullContent;
 
-                // 1. 尝试检测并提取 JSON 块
-                // 简单的正则匹配：```json\n{...}\n```
-                const jsonMatch = fullContent.match(/```json\s*([\s\S]*?)\s*```/);
+                // 优化体验：从显示内容中移除 JSON 代码块，避免闪烁
+                const jsonRegex = new RegExp("```json[\\s\\S]*?(?:```|$)", "g");
+                let displayContent = fullContent.replace(jsonRegex, '').trim();
 
-                if (jsonMatch) {
-                    // 如果发现了完整 JSON 块，尝试解析并执行
-                    try {
-                        const jsonStr = jsonMatch[1];
-                        // 简单的防抖：只在 JSON 闭合且之前未执行过时执行? 
-                        // 或者：流式过程中很难判断何时是"完整"的，除了等待流结束。
-                        // 策略调整：流式过程中只显示 Markdown。流结束后再检查 JSON 执行。
-                        // 为了用户体验，我们实时显示 JSON 文本，流结束后如果能解析，则执行并替换显示。
-                    } catch (e) { }
-                }
+                const rawJsonRegex = new RegExp("\\{[\\s\\S]*?\"actions\"\\s*:\\s*\\[[\\s\\S]*?\\]\\s*\\}", "g");
+                displayContent = displayContent.replace(rawJsonRegex, '').trim();
 
                 if (typeof marked !== 'undefined') {
-                    contentDiv.innerHTML = marked.parse(fullContent);
+                    contentDiv.innerHTML = marked.parse(displayContent);
                 } else {
-                    contentDiv.textContent = fullContent;
+                    contentDiv.textContent = displayContent;
                 }
+
+                // 自动滚动到底部
                 scrollToBottom();
             },
-            // onThinkStart - 开始思考
+            // onThinking - 收到思考过程
             () => {
                 thinkStartTime = Date.now();
                 thinkBlock.style.display = "block";
@@ -630,7 +718,15 @@ If the user request is just a question, answer normally without JSON.
         }
 
         // 核心逻辑：流结束后，检查是否有可执行的 JSON 指令
-        const jsonMatch = finalFullContent.match(/```json\s*([\s\S]*?)\s*```/);
+        // 核心逻辑：流结束后，检查是否有可执行的 JSON 指令
+        // 使用增强的提取函数 (支持 Markdown 和 裸 JSON)
+        let jsonStr = extractJsonFromContent(finalFullContent);
+        let jsonMatch = jsonStr ? [null, jsonStr] : null;
+
+        if (jsonMatch) {
+            console.log("JSON extracted:", jsonStr.substring(0, 50) + "...");
+        }
+
         if (jsonMatch) {
             try {
                 const plan = JSON.parse(jsonMatch[1]);
@@ -638,15 +734,141 @@ If the user request is just a question, answer normally without JSON.
                     // 显示正在执行状态
                     const statusId = addSystemMessage('<i class="fa-solid fa-gear fa-spin"></i> 正在执行 Excel 操作...');
 
-                    await ExcelAgent.execute(plan);
+                    const result = await ExcelAgent.execute(plan);
 
                     removeMessage(statusId);
-                    addSystemMessage('<i class="fa-solid fa-check-circle" style="color:green"></i> 操作执行成功');
 
-                    // 优化体验：如果执行成功，仅显示 message 部分，隐藏 JSON 代码块
-                    // (前提是 message 字段存在)
-                    if (plan.message) {
-                        contentDiv.innerHTML = marked.parse(plan.message);
+                    // 2. 将第一轮的 AI 完整回复 (含 JSON) 加入历史，确保 AI 记得自己干了什么
+                    globalChatHistory.push({ role: "assistant", content: finalFullContent });
+
+                    // ========= ReAct Loop: 处理观察结果 =========
+                    if (result && result.observations && result.observations.length > 0) {
+                        // 如果有观察结果 (来自读取操作), 注入并再次调用 AI
+                        const observationText = result.observations.join("\n---\n");
+
+                        // 隐藏第一轮的 JSON 输出 (用户不需要看到)
+                        // 替换为简洁的状态信息
+                        contentDiv.innerHTML = '<span style="color: var(--text-sub);"><i class="fa-solid fa-database"></i> 数据读取完成，正在分析...</span>';
+
+                        console.log("ReAct Observation:", observationText);
+
+                        // --- 自动化第二轮 (包含原始问题) ---
+                        // 关键：强调必须输出 JSON 动作
+                        const observationPrompt = `Original user request: "${message}"
+
+I have read the spreadsheet data. Here is what I found:
+${observationText}
+
+IMPORTANT: Based on this data, you MUST now generate the JSON actions to fulfill the user's request.
+Reflect on the data found (columns, rows, content) and map it to the actions logic (e.g., if finding sums, identify the correct column letter).
+
+OUTPUT RULES:
+1.  You must output a VALID JSON block with "actions".
+2.  Do NOT just explain what you want to do.
+3.  Do NOT ask for confirmation.
+4.  Directly output the JSON to execute the change.
+
+Example:
+\`\`\`json
+{
+  "thought": "Found 'Price' in column B. Calculating sum.",
+  "actions": [{"type": "setCell", "params": {"address": "B100", "value": "=SUM(B2:B99)", "formula": true}}],
+  "message": "Calculated total price."
+}
+\`\`\`
+`;
+
+                        // ReAct 中间状态也需要加入历史吗？
+                        // 为了让 AI 知道上下文，构建一个临时的 history 用于第二轮
+                        // System (Data) -> AI (Action)
+                        // 若直接 append 到 globalChatHistory，可能会显得啰嗦。
+                        // 但为了 Robustness，我们把 "观察结果" 伪装成 User 消息告诉 AI
+                        const reActHistory = [...globalChatHistory, { role: "user", content: observationPrompt }];
+
+                        // 创建新的 AI 回复容器
+                        const aiMsgDiv2 = document.createElement("div");
+                        aiMsgDiv2.className = "message ai-message";
+                        const contentDiv2 = document.createElement("div");
+                        contentDiv2.className = "ai-content";
+                        contentDiv2.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                        aiMsgDiv2.appendChild(contentDiv2);
+                        appendMessage(aiMsgDiv2);
+
+                        // 重新调用 AI (第二轮)
+                        let finalFullContent2 = "";
+                        await connector.chatStream(
+                            reActHistory, // 使用包含观察结果的历史
+                            systemPrompt,
+                            (chunk, fullContent) => {
+                                finalFullContent2 = fullContent;
+
+                                // 优化体验：从显示内容中移除 JSON 代码块，避免闪烁
+                                const jsonRegex = new RegExp("```json[\\s\\S]*?(?:```|$)", "g");
+                                let displayContent = fullContent.replace(jsonRegex, '').trim();
+
+                                const rawJsonRegex = new RegExp("\\{[\\s\\S]*?\"actions\"\\s*:\\s*\\[[\\s\\S]*?\\]\\s*\\}", "g");
+                                displayContent = displayContent.replace(rawJsonRegex, '').trim();
+
+                                if (typeof marked !== 'undefined') {
+                                    contentDiv2.innerHTML = marked.parse(displayContent);
+                                } else {
+                                    contentDiv2.textContent = displayContent;
+                                }
+                                scrollToBottom();
+                            },
+                            () => { },
+                            () => { }
+                        );
+
+                        // 2.1 将第二轮的 AI 回复加入历史
+                        globalChatHistory.push({ role: "user", content: `System Observation:\n${observationText}` }); // 记录观察
+                        globalChatHistory.push({ role: "assistant", content: finalFullContent2 }); // 记录最终行动
+
+                        // 检查第二轮是否有 JSON 要执行
+                        // 检查第二轮是否有 JSON 要执行 (增强提取)
+                        const jsonStr2 = extractJsonFromContent(finalFullContent2);
+                        const jsonMatch2 = jsonStr2 ? [null, jsonStr2] : null;
+
+                        if (jsonMatch2) {
+                            const plan2 = JSON.parse(jsonMatch2[1]);
+                            if (plan2.actions && Array.isArray(plan2.actions)) {
+                                const statusId2 = addSystemMessage('<i class="fa-solid fa-gear fa-spin"></i> 执行最终操作...');
+                                const result2 = await ExcelAgent.execute(plan2);
+                                removeMessage(statusId2);
+
+                                // 显示写入的单元格位置
+                                if (result2.writtenCells && result2.writtenCells.length > 0) {
+                                    const cellsStr = result2.writtenCells.join(', ');
+                                    addSystemMessage(`<i class="fa-solid fa-check-circle" style="color:green"></i> 已写入: <b>${cellsStr}</b>`);
+                                } else {
+                                    addSystemMessage('<i class="fa-solid fa-check-circle" style="color:green"></i> 操作执行成功');
+                                }
+                                if (plan2.message) {
+                                    contentDiv2.innerHTML = marked.parse(plan2.message);
+                                }
+                            }
+                        } else {
+                            // 第二轮AI没有输出JSON，提示用户
+                            addSystemMessage('<i class="fa-solid fa-info-circle" style="color:orange"></i> AI 未生成执行操作，请尝试更明确的指令');
+                        }
+                    } else {
+                        // 没有观察结果，说明是纯写入操作，直接完成
+                        // 显示写入的单元格位置
+                        if (result.writtenCells && result.writtenCells.length > 0) {
+                            const cellsStr = result.writtenCells.join(', ');
+                            addSystemMessage(`<i class="fa-solid fa-check-circle" style="color:green"></i> 已写入: <b>${cellsStr}</b>`);
+                        } else {
+                            addSystemMessage('<i class="fa-solid fa-check-circle" style="color:green"></i> 操作执行成功');
+                        }
+
+                        // 2. 如果没有 ReAct，直接记录 AI 回复
+                        globalChatHistory.push({ role: "assistant", content: finalFullContent });
+
+                        // 优化体验：如果执行成功，仅显示 message 部分，隐藏 JSON 代码块
+                        // (前提是 message 字段存在)
+                        if (plan.message) {
+                            contentDiv.innerHTML = marked.parse(plan.message);
+                        }
                     }
                 }
             } catch (e) {
@@ -693,4 +915,31 @@ function appendMessage(el) {
 function scrollToBottom() {
     const container = document.getElementById("chat-history");
     container.scrollTop = container.scrollHeight;
+}
+
+// ===== 工具函数：提取 JSON =====
+function extractJsonFromContent(content) {
+    if (!content) return null;
+
+    // 1. 优先尝试 Markdown 代码块 (允许未闭合)
+    const mdMatch = content.match(/```json\s*([\s\S]*?)(?:```|$)/i);
+    if (mdMatch && mdMatch[1]) {
+        // 简单验证有效性
+        if (mdMatch[1].includes('{') && mdMatch[1].includes('}')) {
+            return mdMatch[1];
+        }
+    }
+
+    // 2. 尝试裸 JSON (从第一个 { 到最后一个 })
+    const start = content.indexOf('{');
+    const end = content.lastIndexOf('}');
+
+    if (start >= 0 && end > start) {
+        const potentialJson = content.substring(start, end + 1);
+        if (potentialJson.includes('"actions"')) {
+            return potentialJson;
+        }
+    }
+
+    return null;
 }

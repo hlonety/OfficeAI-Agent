@@ -1,16 +1,26 @@
 :root {
-    --primary: #0078d4;
-    --primary-hover: #106ebe;
-    --bg: #f5f5f5;
-    --card-bg: #ffffff;
-    --text: #323130;
-    --text-sub: #605e5c;
-    --border: #e1dfdd;
-    --success: #107c10;
-    --warning: #ffb900;
-    --error: #d13438;
-    --radius: 8px;
-    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    /* Apple-style warm palette */
+    --primary: #007aff;
+    --primary-hover: #0066d6;
+    --bg: linear-gradient(135deg, #f5f0e8 0%, #e8e4dc 100%);
+    --bg-solid: #f2ede5;
+    --card-bg: rgba(255, 255, 255, 0.7);
+    --card-bg-solid: #fdfcfa;
+    --text: #1c1c1e;
+    --text-sub: #8e8e93;
+    --border: rgba(0, 0, 0, 0.08);
+    --success: #34c759;
+    --warning: #ff9500;
+    --error: #ff3b30;
+    --radius: 14px;
+    --radius-lg: 20px;
+    --shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-blur: blur(20px);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 * {
@@ -18,7 +28,7 @@
 }
 
 body {
-    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
     margin: 0;
     padding: 0;
     background: var(--bg);
@@ -31,7 +41,135 @@ body {
     display: none !important;
 }
 
-/* ===== Header ===== */
+/* ===== Frosted Glass Header ===== */
+.header-dark {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-bottom: var(--glass-border);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.header-title {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+    text-align: center;
+}
+
+/* 汉堡菜单下拉 */
+.menu-dropdown {
+    position: relative;
+}
+
+.menu-btn {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+}
+
+.menu-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.menu-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    min-width: 160px;
+    z-index: 100;
+    margin-top: 4px;
+}
+
+.menu-content button {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+}
+
+.menu-content button:hover {
+    background: var(--bg);
+}
+
+.menu-content button i {
+    margin-right: 8px;
+    color: var(--text-sub);
+}
+
+/* ===== Bottom Bar (Model + New Chat) ===== */
+.bottom-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-top: var(--glass-border);
+}
+
+.model-select {
+    flex: 1 1 120px;
+    min-width: 100px;
+    padding: 10px 32px 10px 12px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card-bg-solid);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238e8e93' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+.new-chat-btn {
+    flex-shrink: 0;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.1s, background 0.15s;
+}
+
+.new-chat-btn:hover {
+    background: var(--primary-hover);
+}
+
+.new-chat-btn:active {
+    transform: scale(0.97);
+}
+
+/* Keep old header for settings page */
 .header {
     background: var(--card-bg);
     padding: 10px 12px;
@@ -81,6 +219,51 @@ body {
     background: var(--bg);
 }
 
+/* ===== Bottom Toolbar ===== */
+.bottom-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+}
+
+.beta-badge {
+    background: #ffeeba;
+    color: #856404;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.toolbar-link {
+    color: var(--primary);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.toolbar-link:hover {
+    color: var(--primary-hover);
+}
+
+.new-chat-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.new-chat-btn:hover {
+    background: var(--bg);
+}
+
 /* ===== Chat View ===== */
 #chat-view,
 #settings-view {
@@ -107,54 +290,113 @@ body {
 
 .message {
     max-width: 85%;
-    padding: 10px 12px;
-    border-radius: var(--radius);
-    font-size: 13px;
+    padding: 12px 16px;
+    border-radius: var(--radius-lg);
+    font-size: 15px;
     line-height: 1.5;
     word-wrap: break-word;
 }
 
 .system-message {
     align-self: center;
-    background: #e8e8e8;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     color: var(--text-sub);
     text-align: center;
-    font-size: 12px;
+    font-size: 13px;
     max-width: 90%;
+    border-radius: 20px;
+    padding: 10px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-.ai-message {
-    align-self: flex-start;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-}
-
+/* 用户消息：浅蓝色气泡 */
 .user-message {
     align-self: flex-end;
-    background: #e3f2fd;
-    border: 1px solid #bbdefb;
+    background: #d4e9fc;
+    color: var(--text);
+    border: none;
+}
+
+/* AI 消息：白色毛玻璃卡片 */
+.ai-message {
+    align-self: flex-start;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow);
 }
 
 .input-area {
     background: var(--card-bg);
-    padding: 10px;
+    padding: 12px;
     border-top: 1px solid var(--border);
+}
+
+/* 输入容器：内含 textarea 和浮动按钮 */
+.input-wrapper {
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(74, 124, 247, 0.15);
 }
 
 textarea {
     width: 100%;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px;
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 12px 50px 12px 14px;
     font-family: inherit;
-    font-size: 13px;
+    font-size: 14px;
     resize: none;
-    min-height: 60px;
+    min-height: 80px;
+    background: transparent;
 }
 
 textarea:focus {
     outline: none;
-    border-color: var(--primary);
+}
+
+textarea::placeholder {
+    color: var(--text-sub);
+    font-style: italic;
+}
+
+/* 浮动发送按钮 */
+.send-btn-float {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, background 0.15s;
+    box-shadow: 0 2px 8px rgba(74, 124, 247, 0.3);
+}
+
+.send-btn-float:hover {
+    background: var(--primary-hover);
+    transform: scale(1.05);
+}
+
+.send-btn-float:active {
+    transform: scale(0.95);
 }
 
 .button-row {
@@ -162,11 +404,12 @@ textarea:focus {
     justify-content: space-between;
     align-items: center;
     margin-top: 8px;
+    padding: 0 4px;
 }
 
 .hint-text {
     font-size: 11px;
-    color: #999;
+    color: var(--text-sub);
 }
 
 button {
@@ -277,16 +520,29 @@ button:disabled {
 
 .key-input-row {
     display: flex;
-    gap: 6px;
-    margin-top: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
 }
 
 .key-input-row input {
-    flex: 1;
-    padding: 6px 8px;
-    font-size: 12px;
+    flex: 1 1 150px;
+    min-width: 0;
+    padding: 10px 12px;
+    font-size: 13px;
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius);
+    background: var(--bg);
+    transition: border-color 0.2s;
+}
+
+.key-input-row input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.key-input-row button {
+    flex-shrink: 0;
 }
 
 .add-custom-btn {
@@ -444,27 +700,37 @@ button:disabled {
 
 /* 模型筛选列表 */
 .model-filter-list {
-    margin-top: 8px;
-    background: #fafafa;
+    margin-top: 10px;
+    background: #f8f9fa;
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px;
-    max-height: 150px;
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    max-height: 200px;
     overflow-y: auto;
+    width: 100%;
 }
 
 .model-item {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 0;
-    font-size: 11px;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 4px;
+    font-size: 12px;
+}
+
+.model-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .model-item label {
     cursor: pointer;
     flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.3;
 }

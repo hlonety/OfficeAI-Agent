@@ -5,6 +5,7 @@
   "main": "src/taskpane/taskpane.js",
   "scripts": {
     "start": "office-addin-debugging start manifest.xml",
+    "start:dev": "office-addin-debugging start manifest-dev.xml",
     "stop": "office-addin-debugging stop manifest.xml",
     "dev-server": "node simple-server.js",
     "dev": "concurrently \"npm run dev-server\" \"npm start\""
