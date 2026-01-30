@@ -579,6 +579,8 @@ ${contextData}
 
 如果用户的请求需要对 Excel 进行操作（如创建表格、格式化、图表或设置数值），你**必须**严格返回以下 JSON 格式。
 
+**注意：** 对于 DeepSeek R1 等推理模型，请务必将 JSON 放在思考过程 <think>...</think> 之外。禁止在 JSON 内部包含思考内容。
+
 ### 1. 公式优先策略 (关键)
 - **永远不要硬编码计算结果**。必须使用 Excel 公式。
 - 例如：不要自己计算 "Sum = 100" 然后写入 100，而要输出 "=SUM(A1:A10)"。
@@ -746,6 +748,7 @@ ${observationText}
 
 IMPORTANT: Based on this data, you MUST now generate the JSON actions to fulfill the user's request.
 Reflect on the data found (columns, rows, content) and map it to the actions logic (e.g., if finding sums, identify the correct column letter).
+Do NOT include any internal thoughts or <think> tags in the final JSON output context.
 
 OUTPUT RULES:
 1.  You must output a VALID JSON block with "actions".
@@ -906,8 +909,12 @@ function scrollToBottom() {
 function extractJsonFromContent(content) {
     if (!content) return null;
 
+    // 0. [DeepSeek R1 Fix] 移除 <think> 标签及其内容
+    // 防止思考过程中的伪代码或中间 JSON 干扰提取
+    const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
     // 1. 优先尝试 Markdown 代码块 (允许未闭合)
-    const mdMatch = content.match(/```json\s*([\s\S]*?)(?:```|$)/i);
+    const mdMatch = cleanContent.match(/```json\s*([\s\S]*?)(?:```|$)/i);
     if (mdMatch && mdMatch[1]) {
         // 简单验证有效性
         if (mdMatch[1].includes('{') && mdMatch[1].includes('}')) {
@@ -916,11 +923,11 @@ function extractJsonFromContent(content) {
     }
 
     // 2. 尝试裸 JSON (从第一个 { 到最后一个 })
-    const start = content.indexOf('{');
-    const end = content.lastIndexOf('}');
+    const start = cleanContent.indexOf('{');
+    const end = cleanContent.lastIndexOf('}');
 
     if (start >= 0 && end > start) {
-        const potentialJson = content.substring(start, end + 1);
+        const potentialJson = cleanContent.substring(start, end + 1);
         if (potentialJson.includes('"actions"')) {
             return potentialJson;
         }
