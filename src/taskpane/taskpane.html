@@ -18,13 +18,10 @@
         <!-- 深色顶栏 -->
         <header class="header-dark">
             <!-- 汉堡菜单 + 下拉 -->
-            <div class="menu-dropdown">
-                <button class="menu-btn" id="menu-toggle-btn"><i class="fa-solid fa-bars"></i></button>
-                <div class="menu-content hidden" id="menu-dropdown">
-                    <button id="menu-settings-btn"><i class="fa-solid fa-gear"></i> API 配置</button>
-                    <button id="menu-about-btn"><i class="fa-solid fa-info-circle"></i> 关于</button>
-                </div>
-            </div>
+            <!-- 直接的设置按钮 (替换了原有的下拉菜单) -->
+            <button class="menu-btn" id="settings-direct-btn" title="API 配置">
+                <i class="fa-solid fa-gear"></i>
+            </button>
             <h2 class="header-title">AI 助手</h2>
             <div style="width: 32px;"></div> <!-- Spacer -->
         </header>

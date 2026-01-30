@@ -75,32 +75,17 @@ function bindEvents() {
     document.getElementById("save-custom-btn").onclick = saveCustomProvider;
     document.getElementById("active-model-select").onchange = onModelChange;
 
-    // 新增：汉堡菜单下拉切换
-    document.getElementById("menu-toggle-btn").onclick = () => {
-        const dropdown = document.getElementById("menu-dropdown");
-        dropdown.classList.toggle("hidden");
-    };
-
-    // 点击菜单外部时关闭下拉
-    document.addEventListener("click", (e) => {
-        const dropdown = document.getElementById("menu-dropdown");
-        const toggleBtn = document.getElementById("menu-toggle-btn");
-        if (!dropdown.contains(e.target) && !toggleBtn.contains(e.target)) {
-            dropdown.classList.add("hidden");
-        }
-    });
-
-    // 菜单项：API 配置
-    document.getElementById("menu-settings-btn").onclick = () => {
-        document.getElementById("menu-dropdown").classList.add("hidden");
+    // 新增：直接点击进入配置
+    document.getElementById("settings-direct-btn").onclick = () => {
         showSettings();
     };
 
-    // 菜单项：关于 (暂时只显示简单提示)
-    document.getElementById("menu-about-btn").onclick = () => {
-        document.getElementById("menu-dropdown").classList.add("hidden");
-        alert("Office AI Agent v1.0\n一个智能的 Excel 自动化助手。");
-    };
+    /* 移除旧的下拉菜单逻辑
+    document.getElementById("menu-toggle-btn").onclick = ...
+    document.addEventListener("click", ...
+    document.getElementById("menu-settings-btn").onclick = ...
+    document.getElementById("menu-about-btn").onclick = ...
+    */
 
     // 新建聊天按钮
     document.getElementById("new-chat-btn").onclick = () => {
